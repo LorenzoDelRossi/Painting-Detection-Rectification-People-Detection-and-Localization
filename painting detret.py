@@ -109,7 +109,8 @@ def main():
                         cv.rectangle(dst, (x, y), (x + w, y + h), (255, 0, 0), 3)
                         rettangoli.append((x, y, w, h))
                         if stanza != 0:
-                            cv.putText(dst, "Stanza " + str(stanza), (0, dst.shape[0]// 2), cv.FONT_HERSHEY_SIMPLEX, 3, (255, 255, 0), 2, cv.LINE_AA)
+                            #cv.putText(dst, "Stanza " + str(stanza), (0, dst.shape[0]// 2), cv.FONT_HERSHEY_SIMPLEX, 3, (255, 255, 0), 2, cv.LINE_AA)
+			    cv.putText(dst, "Stanza " + str(stanza), (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv.LINE_4)
         cv.imshow('Result', dst)
         #cv.imshow("warp", warp)
         key = cv.waitKey(30)
