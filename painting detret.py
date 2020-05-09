@@ -45,7 +45,6 @@ def rectification(orig, pts):
     # the perspective to grab the screen
     M = cv.getPerspectiveTransform(rect, destiny)
     warp = cv.warpPerspective(orig, M, (maxWidth, maxHeight))
-    #cv.imshow("Rectified", warp)
     return warp
 
 
@@ -60,6 +59,7 @@ def main():
     kernel = np.array([[0, 1, 0],
     [1, 1, 1],
     [0, 1, 0]], np.uint8)
+    stanza = 0 # Stanza qui se vogliamo sempre tenere un numero di stanza dalla prima retrieval in poi
     while True:
         ret, image = video_capture.read()
         if not ret:
@@ -85,6 +85,7 @@ def main():
         contours, _ = cv.findContours(erosion_blurred, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
         rettangoli = []
+        #stanza = 0 # Stanza inizializzata qui se vogliamo farla sparire quando non ci sono retrieval nel frame
         image_number = 0
         for cont in contours:
             if cv.contourArea(cont) > 10000:
@@ -100,13 +101,15 @@ def main():
                             #cv.imshow("warped {}".format(image_number), warp)
                             #cv.imshow("box_{}".format(image_number), dst[y:y + h,x:x + w])
                             try:
-                                retrieval_first(warp, x, y, w, h)
+                               stanza = retrieval_first(warp, x, y, w, h)
                             except:
                                 continue # Se non si riesce a fare la retrieval decentemente si va avanti invece di interrompere il video
                             #cv.imshow("cleaned_{}".format(image_number), new)
                             image_number += 1
                         cv.rectangle(dst, (x, y), (x + w, y + h), (255, 0, 0), 3)
                         rettangoli.append((x, y, w, h))
+                        if stanza != 0:
+                            cv.putText(dst, "Stanza " + str(stanza), (0, dst.shape[0]// 2), cv.FONT_HERSHEY_SIMPLEX, 3, (255, 255, 0), 2, cv.LINE_AA)
         cv.imshow('Result', dst)
         #cv.imshow("warp", warp)
         key = cv.waitKey(30)

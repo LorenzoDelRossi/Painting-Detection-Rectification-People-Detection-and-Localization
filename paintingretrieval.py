@@ -145,7 +145,7 @@ def retrieval_list(query_img, x, y, w, h):
 
 
 
-
+# ****** FUNZIONI UTILIZZATE SOLO IN FASE DI SVILUPPO ******
 
 
 
@@ -162,7 +162,61 @@ def descriptor(imagename):
     print(des)
     return des
 
+# Funzione che dato il path di un'immagine crea una ranked list delle immagini più simili nel DB
+def retrieval_list_dev(query_img):
+    if os.path.isfile('datasets/data_orb.json'):
+        with open('datasets/data_orb.json', 'r') as fin:
+            data_orb = json.load(fin)
+    else:
+        print("File data_orb.json non trovato")
+        sys.exit()
+    
+    query_img = cv.cvtColor(query_img, cv.COLOR_BGR2GRAY) # Se prendo in input direttamente l'immagine
+    #query_img = cv.imread(image, cv.IMREAD_GRAYSCALE) # Se devo leggere l'immagine
 
+    # ridimensiono l'immagine se è troppo grande
+    if query_img.shape[0] * query_img.shape[1] > 9e5:
+        query_img = cv.resize(query_img, None, fx=0.7, fy=0.7, interpolation=cv.INTER_AREA)
+    query_img = cv.fastNlMeansDenoising(query_img)
+    # Creo l'ORB detector
+    orb = cv.ORB_create()
+    # Cerco i descrittori dell'immagine di query tramite ORB
+    _, des = orb.detectAndCompute(query_img, None)
+
+    FLANN_INDEX_KDTREE = 1
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    search_params = dict(checks=50)
+    flann = cv.FlannBasedMatcher(index_params, search_params)
+
+    results = {}
+
+    for key, value in data_orb.items():
+        des1 = np.array(value, dtype='float32')
+        matches = flann.knnMatch(np.asarray(des1,np.float32),np.asarray(des,np.float32), k=2)
+        # Creo un "vettore di similarità" tramite la Lowe's ratio
+        good = []
+        for (m, n) in matches:
+            if m.distance < 0.7 * n.distance:
+                good.append(m)
+
+        if len(good) > 0:
+            results[key] = len(good)
+
+    sorted_results = sorted(results.items(), key=lambda kv: kv[1], reverse=True)
+    print(sorted_results[:10])
+
+    with open('datasets/data.json', 'r') as d:
+        data = json.load(d)
+        if sorted_results[0][1] > 8:
+            for i, _ in enumerate(results):
+                titolo = data[sorted_results[i][0]].get('Title', None)
+                autore = data[sorted_results[i][0]].get('Author', None)
+                stanza = data[sorted_results[i][0]].get('Room', None)
+                nomeim = data[sorted_results[i][0]].get('Image', None)
+                print(f"***** {i+1} PLACE ***** \nNome quadro: {titolo} \nAutore: {autore} \nStanza: {stanza} \nNome immagine: {nomeim}\n")
+        else:
+            raise Exception('NO DECENT RETRIEVAL FOUND!')
+    return stanza
 
 
 def main():
@@ -174,7 +228,7 @@ def main():
         print('Creating new json from CSV data...')
         csvtojson('datasets/data.csv','datasets/data.json')
         print('json created successfully!')
-    recognize_painting(args["input"])
+    retrieval_list_dev(args["input"])
 
 
 
