@@ -100,12 +100,12 @@ def main():
                             #cv.imwrite("ROI_{}.png".format(image_number), warp)
                             #cv.imshow("warped {}".format(image_number), warp)
                             #cv.imshow("box_{}".format(image_number), dst[y:y + h,x:x + w])
+			    image_number += 1
                             try:
                                stanza = retrieval_first(warp, x, y, w, h)
                             except:
                                 continue # Se non si riesce a fare la retrieval decentemente si va avanti invece di interrompere il video
                             #cv.imshow("cleaned_{}".format(image_number), new)
-                            image_number += 1
                         cv.rectangle(dst, (x, y), (x + w, y + h), (255, 0, 0), 3)
                         rettangoli.append((x, y, w, h))
                         if stanza != 0:
