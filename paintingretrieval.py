@@ -67,7 +67,7 @@ def retrieval_first(query_img, x, y, w, h):
             results[key] = len(good)
 
     sorted_results = sorted(results.items(), key=lambda kv: kv[1], reverse=True)
-    #print(sorted_results[:10])
+    print(sorted_results[:10])
 
     with open('datasets/data.json', 'r') as d:
         data = json.load(d)
@@ -131,7 +131,8 @@ def retrieval_list(query_img, x, y, w, h):
         data = json.load(d)
         if sorted_results[0][1] > 8:
             print(f"RANKED SIMILARITY LIST FOR THE BOX ({x},{y},{w},{h})")
-            for i, _ in enumerate(results):
+            for i in range(10):
+            #for i, _ in enumerate(results):
                 titolo = data[sorted_results[i][0]].get('Title', None)
                 autore = data[sorted_results[i][0]].get('Author', None)
                 stanza = data[sorted_results[i][0]].get('Room', None)
