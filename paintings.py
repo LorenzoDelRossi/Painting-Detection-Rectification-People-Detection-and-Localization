@@ -5,6 +5,7 @@ from paintingretrieval import retrieval_first, retrieval_list
 
 def paintingspipeline(frame, stanza):
     dst = frame
+    frame = cv2.GaussianBlur(frame, (5,5), 0)
     kernel = np.ones((5,5), np.uint8)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -18,12 +19,11 @@ def paintingspipeline(frame, stanza):
     dilation = cv2.dilate(mask, kernel, iterations=3)
     erosion = cv2.erode(dilation, kernel, iterations=1)
 
-    erosion_blurred = cv2.GaussianBlur(erosion, (5,5), 0)
-    erosion_blurred_closed = cv2.morphologyEx(erosion_blurred, cv2.MORPH_CLOSE, kernel)
-    #cv.imshow('erosion_blurred_closed', erosion_blurred_closed)
+    erosion_blur = cv2.medianBlur(erosion, 7)
+    #cv2.imshow('erosion_blur', erosion_blur)
 
 
-    contours, _ = cv2.findContours(erosion_blurred_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(erosion_blur, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     #image_number = 0
     for cont in contours:
