@@ -1,5 +1,5 @@
 # USAGE
-# python peopledetection.py --input videos/airport.mp4 --output output/airport_output.avi
+# USAGE: python peopledetectionlocalization.py -i videos/video.mp4 -o output/video_output.avi
 
 import numpy as np
 import argparse
@@ -8,8 +8,9 @@ import time
 import cv2
 import os
 # Project imports
-from paintingretrieval import retrieval_first
-from paintingrectification import rectification
+#from paintingretrieval import retrieval_first
+#from paintingrectification import rectification
+from paintings import paintingspipeline
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
@@ -17,7 +18,7 @@ ap.add_argument("-i", "--input", required=True,
 	help="path to input video")
 ap.add_argument("-o", "--output", required=True,
 	help="path to output video")
-ap.add_argument("-c", "--confidence", type=float, default=0.7,
+ap.add_argument("-c", "--confidence", type=float, default=0.8,
 	help="minimum probability to filter weak detections")
 ap.add_argument("-t", "--threshold", type=float, default=0.3,
 	help="threshold when applying non-maxima suppression")
@@ -54,9 +55,6 @@ except:
 	total = -1
 
 
-#kernel = np.array([[0, 1, 0],
-#[1, 1, 1],
-#[0, 1, 0]], np.uint8)
 kernel = np.ones((5,5), np.uint8)
 stanza = 0 # variabile stanza utile successivamente per la localization
 
@@ -83,7 +81,9 @@ while True:
 	start = time.time()
 	layerOutputs = net.forward(ln)
 	end = time.time()
-
+	# INIZIO PAINTING DETECTION
+	stanza = paintingspipeline(frame, stanza)
+	# FINE PAINTING DETECTION
 	# initialize our lists of detected bounding boxes, confidences,
 	# and class IDs, respectively
 	boxes = []
@@ -136,64 +136,19 @@ while True:
 				(xp, yp) = (boxes[i][0], boxes[i][1])
 				(wp, hp) = (boxes[i][2], boxes[i][3])
 
-			# draw a bounding box rectangle and label on the frame
-			#color = [int(c) for c in COLORS[classIDs[i]]]
-			#cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-			# INIZIO PAINTING DETECTION
+				# draw a bounding box rectangle and label on the frame
+				#color = [int(c) for c in COLORS[classIDs[i]]]
+				#cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
 
-				dst = frame
-				gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-			# Cerco la soglia adatta per creare la maschera successivamente
-				thresh, _ = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU)
-
-			# Applico la soglia per creare la maschera dell'immagine
-				mask = (gray < thresh).astype(np.uint8)*255
-
-			# Applico una trasformazione morfologica per "ammorbidire" i contorni
-				dilation = cv2.dilate(mask, kernel, iterations=3)
-				erosion = cv2.erode(dilation, kernel, iterations=1)
-			
-				erosion_blurred = cv2.GaussianBlur(erosion, (5,5), 0)
-				erosion_blurred_closed = cv2.morphologyEx(erosion_blurred, cv2.MORPH_CLOSE, kernel)
-				#cv.imshow('HSV_erosion_blurred', erosion_blurred)
-			
-
-				contours, _ = cv2.findContours(erosion_blurred_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-			#stanza = 0 # Stanza inizializzata qui se vogliamo farla sparire quando non ci sono retrieval nel frame
-				image_number = 0
-				for cont in contours:
-					if cv2.contourArea(cont) > 10000:
-						if cv2.arcLength(cont, True) > 800:
-							arc_len = cv2.arcLength(cont, True)
-							approx = cv2.approxPolyDP(cont, 0.06 * arc_len, True)
-
-							if (len(approx) == 4):
-								x, y, w, h = cv2.boundingRect(cont)
-								if h/w < 2: # Per non rettificare e cercare pezzi di quadri
-									warp = rectification(frame, approx)
-									#cv.imwrite("ROI_{}.png".format(image_number), warp)
-                                	#cv.imshow("warped {}".format(image_number), warp)
-									#cv.imshow("box_{}".format(image_number), dst[y:y + h,x:x + w])
-									image_number += 1
-									try:
-										stanza = retrieval_first(warp, x, y, w, h)
-									except:
-										continue # Se non si riesce a fare la retrieval decentemente si va avanti invece di interrompere il video
-								#cv.imshow("cleaned_{}".format(image_number), new)
-								if stanza != 0:
-									cv2.putText(dst, "Room " + str(stanza), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (128, 255, 100), 2, cv2.LINE_4)
-			
-			# FINE PAINTING DETECTION
 
 				cv2.rectangle(frame, (xp, yp), (xp + wp, yp + hp), (0, 255, 0), 2)
 				text = "{}: {:.4f}".format(LABELS[0],
 								   confidences[i])
-				cv2.putText(frame, f"{LABELS[0]}: {confidences[i]}", (xp, yp - 5),
+				cv2.putText(frame, text, (xp, yp - 5),
 				cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 				
-
+				if stanza != 0:
+					cv2.putText(frame, "Room " + str(stanza), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (254, 45, 43), 2, cv2.LINE_4)
 
 
 
@@ -215,7 +170,7 @@ while True:
 	writer.write(frame)
 
 # release the file pointers
-print("[INFO] cleaning up...")
+print("[INFO] processing finished")
 writer.release()
 vs.release()
-#return boxes # per ritornare la lista delle bounding boxes in formato (x,y,w,h)
+#return boxes # per ritornare la lista delle bounding boxes delle persone in formato (x,y,w,h)
